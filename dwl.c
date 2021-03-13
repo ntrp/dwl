@@ -280,6 +280,7 @@ static void setmon(Client *c, Monitor *m, unsigned int newtags);
 static void setup(void);
 static void sigchld(int unused);
 static void spawn(const Arg *arg);
+static void statusbar(void);
 static void tag(const Arg *arg);
 static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
@@ -1116,6 +1117,7 @@ focusclient(Client *c, int lift)
 		wl_list_insert(&fstack, &c->flink);
 		selmon = c->mon;
 	}
+	statusbar();
 
 	/* Deactivate old client if focus is changing */
 	if (old && (!c || client_surface(c) != old)) {
@@ -1914,6 +1916,7 @@ setlayout(const Arg *arg)
 		selmon->lt[selmon->sellt] = (Layout *)arg->v;
 	/* TODO change layout symbol? */
 	arrange(selmon);
+	statusbar();
 }
 
 /* arg > 1.0 will set mfact absolutely */
@@ -2161,6 +2164,31 @@ spawn(const Arg *arg)
 }
 
 void
+statusbar(void)
+{
+	Monitor *m = NULL;
+	Client *c = NULL;
+	unsigned int activetags;
+
+	wl_list_for_each(m, &mons, link) {
+		activetags=0;
+		wl_list_for_each(c, &clients, link) {
+			if (c->mon == m)
+				activetags |= c->tags;
+		}
+		if (focustop(m))
+			fprintf(stdout, "%s title %s\n", m->wlr_output->name, client_get_title(focustop(m)));
+		else
+			fprintf(stdout, "%s title \n", m->wlr_output->name);
+
+		fprintf(stdout, "%s selmon %u\n", m->wlr_output->name, m == selmon);
+		fprintf(stdout, "%s tags %u %u\n", m->wlr_output->name, activetags, m->tagset[m->seltags]);
+		fprintf(stdout, "%s layout %s\n", m->wlr_output->name, m->lt[m->sellt]->symbol);
+	}
+	fflush(stdout);
+}
+
+void
 tag(const Arg *arg)
 {
 	Client *sel = selclient();
@@ -2169,6 +2197,7 @@ tag(const Arg *arg)
 		focusclient(focustop(selmon), 1);
 		arrange(selmon);
 	}
+	statusbar();
 }
 
 void
@@ -2238,6 +2267,7 @@ toggletag(const Arg *arg)
 		focusclient(focustop(selmon), 1);
 		arrange(selmon);
 	}
+	statusbar();
 }
 
 void
@@ -2250,6 +2280,7 @@ toggleview(const Arg *arg)
 		focusclient(focustop(selmon), 1);
 		arrange(selmon);
 	}
+	statusbar();
 }
 
 void
@@ -2330,6 +2361,7 @@ view(const Arg *arg)
 		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
 	focusclient(focustop(selmon), 1);
 	arrange(selmon);
+	statusbar();
 }
 
 void
